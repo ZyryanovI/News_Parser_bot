@@ -59,7 +59,7 @@ def get_docs_text(doc_name):
         return None
 
 
-def get_docs_number(name_of_topic):
+'''def get_docs_number(name_of_topic):
     stat = TopicStatistic.select().where(TopicStatistic.topic_ == Topics.
                                          select().where(Topics.name == name_of_topic).name)
 
@@ -77,7 +77,7 @@ def get_averenge_doc_len(name_of_topic):
         return stat.get().average_length
     else:
         return None
-
+'''
 
 def get_words(name_of_topic, number):
     cur_topics = Topics.select().where(Topics.name == name_of_topic)
@@ -108,7 +108,10 @@ def get_topic_statistic(name_of_topic):
                                          select().where(Topics.name == name_of_topic))
 
     if len(cur_statistic) > 0:
-        return [cur_statistic.get().frequency_distribution, cur_statistic.get().length_distribution]
+        return [cur_statistic.get().documents_number,
+                cur_statistic.get().get().average_len,
+                cur_statistic.get().frequency_distribution,
+                cur_statistic.get().length_distribution]
     else:
         return None
 

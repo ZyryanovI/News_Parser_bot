@@ -188,19 +188,16 @@ def text(message):
             requests_dict[message.chat.id] = 'start'
 
     elif requests_dict[message.chat.id] == 'describe_topic':
-        docs_emount = db_requests.get_docs_number(message.text)
-        docs_avg_len = db_requests.get_averenge_doc_len(message.text)
-        if (docs_emount is None) or (docs_avg_len is None):
+        stat_info = db_requests.get_topic_statistic(message.text)
+        if stat_info is None:
             bot.send_message(message.chat.id, "This topic has no docs,"
                                               "so I can't make description.")
         else:
-            #  docs_avg_len = db_requests.get_averenge_doc_len(message.text)
-            other_stat = db_requests.get_topic_statistic(message.text)
-            description_text = "docs number: " + str(docs_emount) + "\n" +\
-                               "average_document_length: " + str(docs_avg_len) +\
+            description_text = "docs number: " + " ".join(stat_info[0]) + "\n" +\
+                               "average_document_length: " + " ".join(stat_info[1]) +\
                                '\n' + "frequency distribution: " + '\n' +\
-                               " ".join(other_stat[0] + '\n' + "length distribution: " +
-                                        '\n' + " ".join(other_stat[1]))
+                               " ".join(stat_info[2] + '\n' + "length distribution: " +
+                                        '\n' + " ".join(stat_info[3]))
             bot.send_message(message.chat.id, description_text)
             requests_dict[message.chat.id] = 'start'
 
