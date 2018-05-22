@@ -7,73 +7,122 @@ import json
 from Data_Base import *
 import locale
 
+MAX_REDIRECTS = 50  # максимальное кол-во перенаправлений
+DEVIATION_CONST = 3  # константа, учитывающаяся при выборе слов,
+#  попадающих в отклонение
+
 
 class Parser:
 
     def __init__(self, new_link):
         self.link = new_link
-        self.up_topics = set()
+        self.up_topics = set()  # запоминае тем, нуждающихся в обновлении
+
+    def get_deviation(self, entrance_of_word):
+        '''
+        Функция поиска среднеквадратичного отклонения
+        :param entrance_of_word: словарь вхождения слов
+        :return: отклонение
+        '''
+        avg_entrence_number = sum(entrance_of_word.values()) / len(entrance_of_word)
+        deviation = 0
+        for cur_word in entrance_of_word:
+            deviation += (avg_entrence_number - entrance_of_word[cur_word])**2
+        deviation = (deviation/len(entrance_of_word))**0.5
+        return deviation
 
     def parse_topics(self):
+        '''
+        Парсим темы и добавляем их базу данных при необходимости
+        :return:
+        '''
         session = requests.Session()
-        session.max_redirects = 50
+        session.max_redirects = MAX_REDIRECTS
         cur_data = BeautifulSoup(session.get(self.link).text, 'lxml')
-        topics = cur_data.find_all('div', {'class': 'item item_story js-story-item'})
+
+        # берем все темы
+        topics = cur_data.find_all('div', {'class': 
+                                               'item item_story js-story-item'})
         for cur_topic_ in topics:
 
-            cur_name = cur_topic_.find('span', {'class': 'item__title'}).text.strip()
-            cur_URL = cur_topic_.find('a', {'class': 'item__link no-injects'})['href'].strip()
-            cur_description = cur_topic_.find('span', {'class': 'item__text'}).text.strip()
+            cur_name = cur_topic_.find('span', 
+                                       {'class': 'item__title'}).\
+                text.strip()
+            cur_URL = cur_topic_.find('a', 
+                                      {'class': 'item__link no-injects'})['href'].\
+                strip()
+            cur_description = cur_topic_.find('span', 
+                                              {'class': 'item__text'}).\
+                text.strip()
 
             print(cur_name)
 
             if len(Topics.select().where(cur_URL == Topics.URL)) < 1:
-                Topics.create(name=cur_name, URL=cur_URL, description=cur_description)
+                Topics.create(name=cur_name, URL=cur_URL, 
+                              description=cur_description)
 
     def get_text_and_tags_from_doc(self, new_url):
+        '''
+        Получаем текст и теги
+        :param new_url: ссылка статьи
+        :return: словарь, где по 'text' находится текст,
+        а по 'tegs' - кортеж их текстов тегов
+        '''
         session = requests.Session()
-        session.max_redirects = 50
+        session.max_redirects = MAX_REDIRECTS
         cur_data = BeautifulSoup(session.get(new_url).text, 'lxml')
         paragraphs = cur_data.find_all('p')
         res_par = map((lambda cur_paragraph: str(cur_paragraph.text)), paragraphs)
         text = ' '.join(res_par)
+        # У некоторых новостей другая html-разметка, тогда парсим по ней
         if len(text) == 0:
             paragraphs = cur_data.find_all('div', {'class': 'article__text'})
             res_par = map((lambda cur_paragraph: cur_paragraph.text), paragraphs)
             text = ' '.join(res_par)
         tegs = cur_data.find_all('', {'class': 'article__tags__link'})
-        return {'text': text, 'tegs': tuple(map((lambda cur_teg: cur_teg.text), tegs))}
+        return {'text': text, 
+                'tegs': tuple(map((lambda cur_teg: cur_teg.text), tegs))}
 
     def parse_documents(self, name_of_topic):
+        '''
+        Парсим документы для темы, при необходимости добавляем в бд
+        :param name_of_topic: названием темы
+        :return:
+        '''
         topics = Topics.select().where(Topics.name == name_of_topic)
 
         if len(topics) == 0:
             return
         else:
             session = requests.Session()
-            session.max_redirects = 50
+            session.max_redirects = MAX_REDIRECTS
             cur_topic_url = topics.get().URL
 
             cur_data = BeautifulSoup(session.get(cur_topic_url).text, 'lxml')
             documents = cur_data.find_all('div',
-                                          {'class': 'item item_story-single js-story-item'})
+                                          {'class': 
+                                               'item item_story-single js-story-item'})
 
             for doc in documents:
                 cur_name = doc.find('span', {'class': 'item__title'}).text.strip()
                 cur_URL = doc.find('a',
-                                   {'class': 'item__link no-injects js-yandex-counter'})['href'].\
-                    strip()
+                                   {'class': 'item__link no-injects js-yandex-counter'})['href'].strip()
                 locale.setlocale(locale.LC_ALL, 'russian')
                 last_update = dateparser.\
-                    parse(doc.find('span', {'class': 'item__info'}).text, languages=['ru'])
+                    parse(doc.find('span', {'class': 'item__info'}).text,
+                          languages=['ru'])
 
+                # проверяем, что у нас нет документа с таким url
                 if len(Documents.select().where(Documents.URL == cur_URL
                                                 and Documents.last_update == last_update)) < 1:
+                    # запоминаем, что необходимо пересчитать статистику по теме
                     self.up_topics.add(name_of_topic)
 
+                    # удаляем теги, т.к. могли поменяться
                     Teg.delete().where(Teg.document_ == Documents.
                                        select().where(Documents.URL == cur_URL)).execute()
 
+                    # удаляем предыдущую статистику
                     DocumentStatistic.delete().where(DocumentStatistic.document_ == Documents.
                                                      select().where(Documents.URL == cur_URL)).execute()
 
@@ -99,8 +148,8 @@ class Parser:
 
     #  ***********************************************************************************
 
-    def find_statistic(self, text):
-        words = re.findall(r'[\w,-]+', text)
+    def find_statistic(self, text):  # доделать
+        words = re.findall(r'\w+', text)
         lengths = collections.defaultdict(int)
         entrance_of_frequencies = collections.defaultdict(int)
         entrance_of_word = collections.defaultdict(int)
@@ -109,8 +158,13 @@ class Parser:
             entrance_of_word[cur_word] += 1
             lengths[len(cur_word)] += 1
 
+        cur_deviation = self.get_deviation(entrance_of_word)
+        avg_number = sum(entrance_of_word.values()) / len(entrance_of_word)
+
         for cur_word in entrance_of_word:
-            entrance_of_frequencies[entrance_of_word[cur_word]] += 1
+            if (DEVIATION_CONST*cur_deviation >= abs(entrance_of_word[cur_word]
+                                                     - avg_number)):
+                entrance_of_frequencies[entrance_of_word[cur_word]] += 1
 
         enter_list = [0]*(max(entrance_of_frequencies.keys())+1)
         len_list = [0]*(max(lengths.keys())+1)
@@ -126,6 +180,11 @@ class Parser:
         return res
 
     def save_doc_statistic(self, doc):
+        '''
+        Сохраняем статистику для документа
+        :param doc: название документа
+        :return:
+        '''
         try:
             stat = self.find_statistic(doc.text)
             DocumentStatistic.create(document_=doc,
@@ -142,28 +201,32 @@ class Parser:
                 distribution[i] += adding_distribution[i]
 
     def save_topic_stat(self, name_of_topic):
+        '''
+        Сохраняем статистику по теме
+        :param name_of_topic: навзание темы
+        :return:
+        '''
         documents = Documents.select().where(Documents.topic_ ==
                                              Topics.select().where(Topics.name ==
                                                                    name_of_topic))
         averege_len = 0
-        for document in documents:
-            averege_len += len(re.findall(r'[\w,-]+', document.text))
+        if len(documents) == 0:
+            print("some document is empty")
+        else:
+            for document in documents:
+                averege_len += len(re.findall(r'\w+', document.text))
 
-        try:
             averege_len /= len(documents)
-        except ZeroDivisionError:
-            averege_len = 0
-            print("documents is empty")
 
-        text = ' '.join(document.text for document in documents)
+            text = ' '.join(document.text for document in documents)
 
-        statistic = self.find_statistic(text)
-        TopicStatistic.create(topic_=Topics.select().
-                              where(Topics.name == name_of_topic).get(),
-                              documents_number=len(documents),
-                              average_length=averege_len,
-                              frequency_distribution=json.dumps(statistic[0]),
-                              length_distribution=json.dumps(statistic[1]))
+            statistic = self.find_statistic(text)
+            TopicStatistic.create(topic_=Topics.select().
+                                  where(Topics.name == name_of_topic).get(),
+                                  documents_number=len(documents),
+                                  average_length=averege_len,
+                                  frequency_distribution=json.dumps(statistic[0]),
+                                  length_distribution=json.dumps(statistic[1]))
 
 
 if __name__ == '__main__':
