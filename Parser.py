@@ -69,9 +69,13 @@ class Parser:
         а по 'tegs' - кортеж их текстов тегов
         '''
         session = requests.Session()
+
         session.max_redirects = MAX_REDIRECTS
+
         cur_data = BeautifulSoup(session.get(new_url).text, 'lxml')
+
         paragraphs = cur_data.find_all('p')
+
         res_par = map((lambda cur_paragraph: str(cur_paragraph.text)), paragraphs)
         text = ' '.join(res_par)
         # У некоторых новостей другая html-разметка, тогда парсим по ней
@@ -149,7 +153,7 @@ class Parser:
     #  ***********************************************************************************
 
     def find_statistic(self, text):  # доделать
-        words = re.findall(r'\w+', text)
+        words = re.findall(r'[\w,-]+', text)
         lengths = collections.defaultdict(int)
         entrance_of_frequencies = collections.defaultdict(int)
         entrance_of_word = collections.defaultdict(int)
@@ -214,7 +218,7 @@ class Parser:
             print("some document is empty")
         else:
             for document in documents:
-                averege_len += len(re.findall(r'\w+', document.text))
+                averege_len += len(re.findall(r'[\w,-]+', document.text))
 
             averege_len /= len(documents)
 
