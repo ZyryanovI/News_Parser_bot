@@ -221,6 +221,13 @@ def text(message):
     :return:
     '''
     args = set_status_and_get_arg(message)
+
+    if args == '':
+        if requests_dict[message.chat.id] == 'new_docs':
+            args = str(DEFAULT_DOCS_AMOUNT)
+        if requests_dict[message.chat.id] == 'new_topics':
+            args = str(DEFAULT_TOPICS_AMOUNT)
+
     exec(command_dict[requests_dict[message.chat.id]])
     #  exec()
 

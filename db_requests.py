@@ -139,6 +139,7 @@ def make_plot(data_dict, plot_name, x_name, y_name):
                               colormap='jet', legend=None)
     created_plot.set_ylabel(y_name)
     created_plot.set_xlabel(x_name)
+    created_plot.set_xlim(True)
     return created_plot
 
 
