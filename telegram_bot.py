@@ -191,6 +191,13 @@ def words_(message_chat_id, name):
 
 
 def describe_doc_or_topic_(message_chat_id, name, type):
+    '''
+    Выводим описание темы или документа
+    :param message_chat_id: id пользователя
+    :param name: название темы или документа
+    :param type: 'topic' или 'document'
+    :return:
+    '''
     plot_frequency_name = 'p1ot_doc_' + str(message_chat_id) + '_f.png'
     plot_length_name = 'plot_doc_' + str(message_chat_id) + '_l.png'
     if db_requests.make_final_plots(name, type,

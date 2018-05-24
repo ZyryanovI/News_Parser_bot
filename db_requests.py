@@ -2,7 +2,7 @@ import peewee
 import collections
 from Data_Base import *
 import matplotlib
-#  matplotlib.use('Agg')
+matplotlib.use('Agg')
 import pandas
 import json
 from matplotlib import pyplot
