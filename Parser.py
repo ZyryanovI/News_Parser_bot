@@ -179,9 +179,9 @@ class Parser:
         for cur_len in lengths:
             len_list[cur_len] = lengths[cur_len]
 
-        res = [enter_list, len_list]
+        finding_result = [enter_list, len_list]
 
-        return res
+        return finding_result
 
     def save_doc_statistic(self, doc):
         '''
@@ -238,17 +238,17 @@ if __name__ == '__main__':
     data_base.create_tables([Documents, Teg, Topics,
                              DocumentStatistic, TopicStatistic])
 
-    my_parser = Parser("https://www.rbc.ru/story/")
+    rbc_parser = Parser("https://www.rbc.ru/story/")
 
-    my_parser.parse_topics()
+    rbc_parser.parse_topics()
 
     for cur_topic in Topics.select():
 
         print(cur_topic)
 
-        my_parser.parse_documents(cur_topic.name)
+        rbc_parser.parse_documents(cur_topic.name)
 
-    for topic_name in my_parser.up_topics:
+    for topic_name in rbc_parser.up_topics:
         TopicStatistic.delete().where(TopicStatistic.topic_ == Topics.select().
                                       where(Topics.name == topic_name)).execute()
-        my_parser.save_topic_stat(topic_name)
+        rbc_parser.save_topic_stat(topic_name)

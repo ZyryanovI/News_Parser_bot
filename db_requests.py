@@ -2,7 +2,7 @@ import peewee
 import collections
 from Data_Base import *
 import matplotlib
-matplotlib.use('Agg')
+#  matplotlib.use('Agg')
 import pandas
 import json
 from matplotlib import pyplot
@@ -17,11 +17,11 @@ def get_new_news(number):
     :param number: - требуемое количество новостей
     :return: список из number элементов Document, которые первые при сортировке
     '''
-    res = []
+    result_list = []
     for doc in Documents.select().order_by(-Documents.last_update):
-        res.append(doc)
+        result_list.append(doc)
 
-    return res[:number]
+    return result_list[:number]
 
 
 def get_new_topics(number):
@@ -37,11 +37,11 @@ def get_new_topics(number):
                                Max(Documents.last_update)).
               where(Documents.topic_ ==
                     Topics.name)).order_by(-Documents.last_update)
-    res = []
+    result_list = []
     for cur_topic in new_topics:
-        res.append(cur_topic)
+        result_list.append(cur_topic)
 
-    return res[:number]
+    return result_list[:number]
 
 
 def get_topics_description(name_of_topic):
@@ -67,11 +67,11 @@ def get_topic_new_news(name_of_topic, number):
     cur_topic = Topics.select().where(Topics.name == name_of_topic)
 
     if len(cur_topic) > 0:
-        res = []
+        result_list = []
         for news in Documents.select().where(Documents.topic_ ==
                                              name_of_topic).order_by(-Documents.last_update):
-            res.append(news)
-        return res[:number]
+            result_list.append(news)
+        return result_list[:number]
     else:
         return None
 
@@ -109,13 +109,13 @@ def get_words(name_of_topic, number):
             for teg in cur_tegs:
                 tegs_dict[teg.name] += 1
 
-        res = []
+        result_list = []
         for teg in tegs_dict:
-            res.append(teg)
+            result_list.append(teg)
 
-        res.sort(key=(lambda teg: -tegs_dict[teg]))
+        result_list.sort(key=(lambda teg: -tegs_dict[teg]))
 
-        return res[:number]
+        return result_list[:number]
 
     else:
         return None
@@ -135,11 +135,11 @@ def make_plot(data_dict, plot_name, x_name, y_name):
     :return: график
     '''
     data_frame = pandas.DataFrame(data_dict)
-    my_plot = data_frame.plot(kind="bar", title=plot_name,
+    created_plot = data_frame.plot(kind="bar", title=plot_name,
                               colormap='jet', legend=None)
-    my_plot.set_xlabel(x_name)
-    my_plot.set_ylabel(y_name)
-    return my_plot
+    created_plot.set_ylabel(y_name)
+    created_plot.set_xlabel(x_name)
+    return created_plot
 
 
 def make_final_plots(name, type, file_name_f, file_name_l):
